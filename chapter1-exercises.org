@@ -1,4 +1,9 @@
 [[https://mitpress.mit.edu/sicp/full-text/book/book-Z-H-11.html#%25_sec_1.2][Taken from here]]
+
+Please note: I've lifted most of these exercises mostly verbatim but
+added code where necessary and made more language more succinct in
+others.  These exercises are not mine, they are the authors of SICP.
+The solutions are mine unless otherwise cited.
 * Section 1.2.4
 ** Exercise 1.17
 *** Problem Statement
@@ -25,10 +30,10 @@ by 2.  Using these design a multiplication procedure analogous to
     (+ x x))
   (define (halve x)
     (/ x 2))
-    (define (fast-* a b)
-      (cond ((= b 2) (double a))
-            ((even? b) (double (fast-* a (halve b))))
-            (else (+ a (fast-* a (- b 1))))))
+  (define (fast-* a b)
+    (cond ((= b 2) (double a))
+          ((even? b) (double (fast-* a (halve b))))
+          (else (+ a (fast-* a (- b 1))))))
   (and (= (fast-* 12 12) 144)
        (= (fast-* 7 3)   21)
        (= (fast-* 10 10) 100))
@@ -41,8 +46,68 @@ generates an iterative process for multiplying two integers in terms
 of adding, doubling, and halving and uses a logarithmic number of
 steps.
 *** Solution
-
+#+BEGIN_SRC scheme
+    (define (fast-* a b)
+      (iter-* a b 1)
+    (define (iter-* a b result)
+      (cond ((= b 2) (double result))
+            ((even? b) (iter-* a (halve b) (double result)))
+            (else (iter-* a (- b 1) (+ result a)))))
+  (and (= (fast-* 12 12) 144)
+       (= (fast-* 7 3)   21)
+       (= (fast-* 10 10) 100))
+#+END_SRC
+* Section 1.2.5
 ** Exercise 1.20
+*** Problem
+Consider the iterative =gcd= procedure:
+#+BEGIN_SRC scheme
+  (define (gcd a b)
+    (if (= b 0)
+        a
+        (gcd b (remainder a b))))
+#+END_SRC
+Suppose we were to interpret this procedure using normal-order
+evaluation (discussed in section 1.1.5). Using the substitution
+method illustrate the process generated in evaluating =(gcd 206 40)=
+and indicate the =remainder= operations that are actually
+performed. How many =remainder= operations are actually performed in
+the normal-order evaluation of =(gcd 206 40)=? In applicative-order
+evaluation?
+*** Solution
+Reminder: 
+- *Normal order* means expand function calls until only primatives
+  remain and then evaluate them to arrive at the final result
+- *Applicative order* means evaluate the arguments of function calls
+  immediately and then call remaining functions until final result
+**** Normal order
+http://community.schemewiki.org/?sicp-ex-1.20
+#+BEGIN_SRC example
+  (gcd 206 40)
+  (if (= 40 0) ... (gcd 40 (remainder 206 40)))
+  (if (= 6 0) ... (gcd (remainder 206 40) (remainder 40 (remainder 206 40)))) ; 1 remainder call
+  (if (= 4 0) ... (gcd (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))))  ; 2 remainder calls
+  (if (= 2 0) ... (gcd (remainder (remainder 206 40) (remainder 40 (remainder 206 40))) ; 4 remainder calls
+                       (remainder (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40))))))
+  (if (= 0 0) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))) ; 7 remainder calls
+  (remainder (remainder 206 40) (remainder 40 (remainder 206 40))) 
+  2 ;4 remainder calls
+#+END_SRC
+Total calls to remainder: 18
+**** Applicative Order
+#+BEGIN_EXAMPLE
+(gcd 206 40)
+(gcd 40 (remainder 206 40))
+(gcd 40 6)
+(gcd 6 (remainder 40 6))
+(gcd 6 4)
+(gcd 4 (remainder 6 4))
+(gcd 4 2)
+(gcd 2 (remainder 4 2))
+(gcd 2 0)
+2
+#+END_EXAMPLE
+Total calls to remainder: 4
 ** Exercise 1.22 
 ** Exercise 1.24 
 ** Exercise 1.26 
