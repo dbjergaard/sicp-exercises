@@ -113,13 +113,262 @@ Total calls to remainder: 4
 * Section 1.2.6
 [[info:sicp#1-2-6][Section 1.2.6]]
 ** Exercise 1.22 
+*** Problem
+The following =timed-prime-test= procedure when called with integer
+=n=, prints =n= and checks to see if =n= is prime. If so, it prints
+three asterisks followed by the amount of time used in performing the
+test.  Timing is done with the primitive =current-milliseconds=.
+#+BEGIN_SRC scheme
+  (define (square x)
+    (* x x))
+
+  (define (smallest-divisor n)
+    (find-divisor n 2))
+  (define (find-divisor n test-divisor)
+    (cond ((> (square test-divisor) n) n)
+          ((divides? test-divisor n) test-divisor)
+          (else (find-divisor n (+ test-divisor 1)))))
+  (define (divides? a b)
+    (= (remainder b a) 0))
+  (define (prime? n)
+    (= n (smallest-divisor n)))
+  
+  (define (timed-prime-test n)
+    (display n)
+    (start-prime-test n (current-milliseconds))
+    (newline))
+  (define (start-prime-test n start-time)
+    (when (prime? n)
+        (report-prime (- (current-milliseconds) start-time))))
+  (define (report-prime elapsed-time)
+    (display " *** ")
+    (display elapsed-time))
+
+#+END_SRC
+Using this procedure, write a =search-for-primes= that checks the
+primality of consecutive odd integers in a specified range.  Use your
+procedure to find the smallest 3 primes larger than:
+- 1000
+- 10,000
+- 1,000,000
+Is the timing information consistent with $O(\sqrt{n})$ steps? Is
+this compatible with the idea that run time is proportional to the
+number of steps required for computation? 
+*** Solution
+I originally wrote this with a let, which I think is cheating, so I
+cheated worse and referenced:
+http://www.billthelizard.com/2010/02/sicp-exercise-122-timed-prime-test.html
+#+BEGIN_SRC scheme
+(define (search-for-primes a b)
+  (if (even? a)
+      (search-for-primes (+ a 1) b)
+      (when (< a b)
+        (timed-prime-test a)
+        (search-for-primes (+ a 1) b))))
+#+END_SRC
+|            Prime | Time (ms) | Ratio |
+|------------------+-----------+-------|
+|    1000000000061 |       117 |       |
+|    1000000000063 |       115 |       |
+|   10000000000037 |       378 | 0.313 |
+|   10000000000051 |       367 |       |
+|   10000000000099 |       367 |       |
+|  100000000000031 |      1154 |  0.32 |
+|  100000000000067 |      1146 |       |
+|  100000000000097 |      1151 |       |
+| 1000000000000037 |      3605 | 0.318 |
+| 1000000000000091 |      3607 |       |
+| 1000000000000159 |      3640 |       |
+|------------------+-----------+-------|
+Expect $T(n) \propto \sqrt{n}$, therefore:
+$$
+\frac{T(10^n)}{T(10^{n+1})}=\frac{1}{\sqrt{10}} = 0.3162
+$$
+The experimental data backs up the expectation that the number of
+steps required is proportional to the run time.
 ** Exercise 1.24 
-** Exercise 1.26 
+*** Problem
+Modify the =timed-prime-test= procedure from Exercise 1.22 to use
+=fast-prime?= (the Fermat method), and test the 12 primes you found
+in that exercise. Does your data agree with the expected $O(\log n)$
+growth? 
+*** Solution
+#+BEGIN_SRC scheme
+  (require (lib "27.ss" "srfi"))
+  (define (square x)
+    (* x x))
+  (define (expmod base exp m)
+    (cond ((= exp 0) 1)
+          ((even? exp)
+           (remainder (square (expmod base (/ exp 2) m))
+                      m))
+          (else
+           (remainder (* base (expmod base (- exp 1) m))
+                      m))))
+  (define (timed-prime-test n)
+    (display n)
+    (start-prime-test n (current-milliseconds))
+    (newline))
+  (define (start-prime-test n start-time)
+    (when (fast-prime? n 10000)
+        (report-prime (- (current-milliseconds) start-time))))
+  (define (report-prime elapsed-time)
+    (display " *** ")
+    (display elapsed-time))
+  
+  (define (fermat-test n)
+    (define (try-it a)
+      (= (expmod a n n) a))
+    (try-it (+ 1 (random-integer (- n 1)))))
+  (define (fast-prime? n times)
+    (cond ((= times 0) true)
+          ((fermat-test n) (fast-prime? n (- times 1)))
+          (else false)))
+(timed-prime-test   1000000000061)
+(timed-prime-test   1000000000063)
+(timed-prime-test  10000000000037)
+(timed-prime-test  10000000000051)
+(timed-prime-test  10000000000099)
+(timed-prime-test 100000000000031)
+(timed-prime-test 100000000000067)
+(timed-prime-test 100000000000097)
+(timed-prime-test 1000000000000037)
+(timed-prime-test 1000000000000091)
+(timed-prime-test 1000000000000159)
+#+END_SRC
+Results:
+(times cranked up to 1000 to get reasonable numbers)
+|------------------+-----------+-----+-----------------+-------------|
+|            Prime | Time (ms) | Avg | Ratio (n/(n-1)) | Expected    |
+|------------------+-----------+-----+-----------------+-------------|
+|    1000000000061 |       324 |     |                 |             |
+|    1000000000063 |       262 | 293 |                 |             |
+|   10000000000037 |       266 |     |                 |             |
+|   10000000000051 |       270 |     |                 |             |
+|   10000000000099 |       271 | 269 |            0.91 | 12/13=0.923 |
+|  100000000000031 |       307 |     |                 |             |
+|  100000000000067 |       298 |     |                 |             |
+|  100000000000097 |       298 | 301 |            0.89 | 13/14=0.928 |
+| 1000000000000037 |       324 |     |                 |             |
+| 1000000000000091 |       335 | 330 |            0.91 | 14/15=0.933 |
+|------------------+-----------+-----+-----------------+-------------|
+The data matches (roughly) with expected answer.
 ** Exercise 1.27
+*** Problem
+Demonstrate that the Carmichael numbers really do fool the Fermat
+test.  Write a procedure that takes an integer $n$ and tests whether
+$a^n$ is congruent to $a$ modulo $n$ for every $a<n$.  Try the
+procedure on the given Carmichael numbers. 
+*** Solution
+We need expmod
+#+BEGIN_SRC scheme
+  (define (square x) (* x x))
+  (define (expmod base exp m)
+    (cond ((= exp 0) 1)
+          ((even? exp)
+           (remainder (square (expmod base (/ exp 2) m))
+                      m))
+          (else
+           (remainder (* base (expmod base (- exp 1) m))
+                      m))))
+  (define (carmichael? n)
+    (define (cm-test n a)
+      (cond ((= a n) #t)
+            ((= (expmod a n n) a) (cm-test n (+ a 1))) 
+            (else #f)))
+    (cm-test n 0))
+  (map carmichael? '(561 1105 1729 2465 2821 6601))
+#+END_SRC
 * Section 1.3.1
 [[info:sicp#1-3-1][Section 1.3.1]]
 ** Exercise 1.30 
+*** Problem 
+The =sum= procedure generates a linear recursion.
+#+BEGIN_SRC scheme
+  (define (sum term a next b)
+    (if (> a b)
+        0
+        (+ (term a) (sum term (next a) next b))))
+#+END_SRC
+The procedure can be re-written so that the sum is performed
+iteratively. Show how to do this by filling in the missing
+expressions in the following definition:
+#+BEGIN_SRC scheme
+  (define (sum term a next b)
+    (define (iter a result)
+      (if ??
+          ??
+          (iter ?? ??)))
+    (iter ?? ??))
+#+END_SRC
+*** Solution
+Terminating the sum is the same as before, =a= gets incremented until
+it overtakes =b= and the sum stops and returns the result, the
+iterative part comes from the second argument in the call to =iter=,
+this will hold the result.  Then the only remaining bit is how to
+start the =iter= procedure:
+#+BEGIN_SRC scheme
+(define (sum term a next b)
+    (define (iter a result)
+      (if (> a b)
+          result
+          (iter (next a) (+ (term a) result))))
+    (iter a 0))
+(define (cube x)
+  (* x x x))
+(define (inc n) (+ n 1))
+(define (sum-cubes a b)
+  (sum cube a inc b))
+(= (sum-cubes 1 10) 3025)
+#+END_SRC
 ** Exercise 1.31
+*** Problem
+a. The =sum= procedure is only the simplest of a vast number of
+similar abstractions that can be captured as higher-order
+procedures.  Write an analogous procedure =product= that returns the
+product of values of a function at points over a given range. Show
+how to define =factorial= in terms of =product=. Also use =product=
+to compute approximations to \pi using the formula:
+$$
+\frac{\pi}{4} = \frac{2\cdot4\cdot4\cdot6\cdot6\cdot8\cdots}{3\cdot3\cdot5\cdot5\cdot7\cdot7\cdots}
+$$
+b. If your procedure generates a recursive process, write one that
+generates an iterative process, or vice versa.
+*** Solution
+
+#+BEGIN_SRC scheme
+  (define (product term a next b)
+    (if (> a b)
+        1
+        (* (term a) (product term (next a) next b))))
+#+END_SRC
+This generates the recursive version using the same signature as
+=sum=, =factorial= then becomes:
+#+BEGIN_SRC scheme
+  (define (inc n) (+ n 1))
+  (define (id x) x)
+  (define (factorial n)
+    (product id 1 inc n))
+#+END_SRC
+Calculating \pi:
+#+BEGIN_SRC scheme
+  (define (inc n) (+ n 1))
+  (define (wallis-term n)
+    (/ (square (* 2 n))
+       (* (- (* 2 n) 1) (+ (* 2 n) 1))))
+  (define (pi n)
+    (* 2 (product wallis-term 1 inc n)))
+(+ 0.0 (pi 10000))
+#+END_SRC
+My product is recursive, so here's the iterative version:
+#+BEGIN_SRC scheme
+  (define (product term a next b)
+      (define (iter a result)
+        (if (> a b)
+            result
+            (iter (next a) (* (term a) result))))
+      (iter a 1))
+#+END_SRC
 * Section 1.3.2
 [[info:sicp#1-3-2][Section 1.3.2]]
 ** Exercise 1.34 
