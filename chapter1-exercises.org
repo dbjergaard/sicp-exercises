@@ -374,7 +374,109 @@ My product is recursive, so here's the iterative version:
 ** Exercise 1.34 
 
 ** Exercise 1.40 
+*** Problem
+Define a procedure =cubic= that can be used together with
+=newtons-method= procedure in expressions of the form:
+#+BEGIN_EXAMPLE
+(newtons-method (cubic a b c) 1)
+#+END_EXAMPLE
+to approximate zeroes of the cubic $x^3 + ax^2 + bx +c$.
+*** Solution
+First we need the code that performs Newton's method:
+#+BEGIN_SRC scheme
+  (define dx 1e-5)
+  (define (deriv g)
+    (lambda (x)
+      (/ (- (g (+ x dx) (g x)))
+         dx)))
+  (define tolerance 1e-5)
+  (define (fixed-point f first-guess)
+    (define (close-enough? v1 v2)
+      (< (abs (- v1 v2)) tolerance))
+    (define (try guess)
+      (let ((next (f guess)))
+        (if (close-enough? guess next)
+            next
+            (try next))))
+    (try first-guess))
+  (define (newton-transform g)
+    (lambda (x)
+      (- x (/ (g x) ((deriv g) x)))))
+  (define (newtons-method g guess)
+    (fixed-point (newton-transform g) guess))
+#+END_SRC
+Now we just need a procedure which returns a procedure representing
+the cubic polynomial in question:
+#+BEGIN_SRC scheme
+  (define (cube x)
+    (* x x x))
+  (define (square x)
+    (* x x))
+  (define (cubic a b c)
+    (lambda (x)
+      (+ (cube x) (* a (square x)) (* b x) c)))
+#+END_SRC
 ** Exercise 1.41 
+*** Problem
+Define a procedure =double= that takes a procedure of one argument as
+argument and returns a procedure that applies the original procedure
+twice. For example, if =inc= is a procedure that adds 1 to its
+argument, then =(double inc)= should be a procedure that adds 2.
+What is the value returned by
+#+BEGIN_EXAMPLE
+(((double (double double)) inc) 5)
+#+END_EXAMPLE
+*** Solution
+Here's the procedure:
+#+BEGIN_SRC scheme
+  (define (double proc)
+    (lambda (x)
+      (proc (proc x))))
+#+END_SRC
+#+BEGIN_EXAMPLE
+(((double (double double)) inc) 5)
+#+END_EXAMPLE
+This can be expanded (or fed to the interpreter) to give =21=
+** Exercise 1.42
+*** Problem
+Let $f$ and $g$ be two one-argument functions. The /composition/ of
+$f$ after $g$ is defined to be the function $x\rightarrow
+f(g(x))$. Define a procedure =compose= that implements
+composition. For example, if =inc= is a procedure that adds 1 to its
+argument,
+#+BEGIN_EXAMPLE
+((compose square inc) 6)
+49
+#+END_EXAMPLE
+*** Solution
+Here's the procedure:
+#+BEGIN_SRC scheme
+  (define (compose f g)
+    (lambda (x)
+      (f (g x))))
+#+END_SRC
 ** Exercise 1.43 
+*** Problem
+If $f$ is a numerical function and $n$ is a positive integer, then we
+can form the $n$th repeated application of $f$, which is defined as
+the function whose value at $x$ is $f(f(\ldots (f(x)) \ldots)). For
+example, if $f$ is the function $x\rightarrow x+1$, then the $n$th
+repeated application of $f$ is the function $x\rightarrow x+n$. If
+$f$ is the operation of squaring a number then the $n$th repeated
+application of $f$ raises its argument to the $2^n$th power. Write a
+procedure that takes as inputs a procedure that computes $f$ and a
+positive integer $n$ and returns the procedure that computes the
+$n$th repeated application of $f$. Example:
+#+BEGIN_EXAMPLE
+((repeated square 2) 5)
+625
+#+END_EXAMPLE
+*** Solution
+#+BEGIN_SRC scheme
+    (define (repeated f n)
+      (if (= n 1)
+          f
+          (compose f (repeated f (- n 1)))))
+#+END_SRC
 ** Exercise 1.45 
 ** Exercise 1.46
