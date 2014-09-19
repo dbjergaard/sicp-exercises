@@ -502,7 +502,7 @@ $n$th repeated application of $f$. Example:
           f
           (compose f (repeated f (- n 1)))))
 #+END_SRC
-** Exercise 1.45 
+** TODO Exercise 1.45 
 http://www.billthelizard.com/2010/08/sicp-145-computing-nth-roots.html
 *** Problem
 Determine the number of "average damps" required to compute $n$th
@@ -547,3 +547,13 @@ Now, the procedure:
 |        2 |     6 |
 |        3 |       |
 ** Exercise 1.46
+*** Problem
+/Background information omitted./ Write a procedure
+=iterative-improve= that takes two procedures as arguments: a method
+for telling whether a guess is good enough and a method for improving
+a guess. =Iterative-improve= should return as its value a procedure
+that takes a guess as argument and keeps improving the guess until it
+is good enough.  Rewrite the =sqrt= procedure in section 1.1.7 and
+the =fixed-point= procedure of 1.3.3 in terms of =iterative-improve=.
+
+*** Solution
